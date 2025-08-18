@@ -270,7 +270,24 @@ python main.py --mock
 **Project Files:**
 - `.python-version` - Specifies Python 3.11.2 for pyenv users
 - `.gitignore` - Excludes `.venv/` from version control
+- `.envrc` - Direnv configuration for automatic environment setup
 - `requirements.txt` - Python dependencies
+
+**Optional: Using direnv (Recommended)**
+If you have [direnv](https://direnv.net/) installed, it will automatically:
+- Install Python 3.11.2 using pyenv (if pyenv is available and version not installed)
+- Create the virtual environment if it doesn't exist
+- Activate the virtual environment when entering the directory
+
+```bash
+# Install direnv (macOS)
+brew install direnv
+
+# Allow the .envrc file
+direnv allow
+
+# Environment will now activate automatically when entering the directory
+```
 
 ## 5. User Experience
 
