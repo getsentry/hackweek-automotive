@@ -1,0 +1,35 @@
+[Unit]
+Description=Sentry CarBuddy OBD-II Monitor
+Documentation=https://github.com/sentry-automotive/carbuddy
+After=network-online.target bluetooth.service
+Wants=network-online.target
+Requires=bluetooth.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/sentry-carbuddy
+ExecStart=/opt/sentry-carbuddy/venv/bin/python /opt/sentry-carbuddy/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment=PYTHONUNBUFFERED=1
+Environment=SENTRY_ENVIRONMENT=production
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/sentry-carbuddy/logs /opt/sentry-carbuddy/config
+
+# Resource limits
+MemoryMax=256M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

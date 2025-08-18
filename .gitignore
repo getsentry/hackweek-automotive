@@ -96,3 +96,6 @@ Thumbs.db
 logs/
 config/carbuddy-config.json
 *.log
+
+# Development and testing
+test_obd_connection.py

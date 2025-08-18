@@ -1,0 +1,8 @@
+# Core dependencies
+obd==0.7.1              # Python OBD-II library for vehicle diagnostics (includes pyserial)
+sentry-sdk==2.18.0      # Sentry error reporting and performance monitoring
+
+# Code formatters and quality tools
+black==24.10.0          # Code formatting
+isort==5.13.2           # Import sorting
+flake8==7.1.1           # Linting

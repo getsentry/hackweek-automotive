@@ -1,0 +1,4 @@
+# Factory-provisioned Veepeak OBDCheck BLE+ adapter MAC address
+# This file is populated during manufacturing
+# Example: AA:BB:CC:DD:EE:FF
+00:00:00:00:00:00

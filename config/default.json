@@ -1,0 +1,13 @@
+{
+  "sentry_dsn": "",
+  "poll_interval": 300,
+  "obd_port": null,
+  "log_level": "INFO",
+  "max_retries": 3,
+  "retry_delay": 30,
+  "device_info": {
+    "device_type": "raspberry_pi_zero_w",
+    "application": "sentry_carbuddy",
+    "version": "1.0.0"
+  }
+}
