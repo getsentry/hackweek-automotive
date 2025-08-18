@@ -2,7 +2,7 @@
 
 ## Overview
 
-Sentry CarBuddy is a hardware device based on Raspberry Pi Zero W that connects via Bluetooth LE to an OBD-II adapter to read vehicle Diagnostic Trouble Codes (DTCs) and reports them as errors to Sentry.io.
+Sentry CarBuddy is a hardware device based on Raspberry Pi Zero W that connects via Bluetooth LE to a factory-paired OBD-II adapter to read vehicle Diagnostic Trouble Codes (DTCs) and reports them as errors to Sentry.io. Each CarBuddy kit ships with a pre-paired Pi and Veepeak OBDCheck BLE+ adapter for plug-and-play operation.
 
 ## Architecture
 
@@ -65,8 +65,8 @@ Create a custom Raspberry Pi OS image with:
 ### 2.2 Configuration File Management
 Users will download a configuration file from the Sentry UI containing:
 - Sentry DSN (Data Source Name)
-- Project-specific settings
-- Device identification parameters
+
+*Note: Additional configuration options may be added in the future as requirements are identified.*
 
 **Process:**
 1. User creates Sentry project and downloads `carbuddy-config.json`
@@ -74,19 +74,51 @@ Users will download a configuration file from the Sentry UI containing:
 3. Setup script validates and applies the configuration
 4. CarBuddy application reads configuration on startup
 
-### 2.3 Setup Script Development
-Create a comprehensive setup script (`setup.sh`) that handles:
+### 2.3 Factory Provisioning Process
+CarBuddy devices are factory-provisioned during manufacturing with a comprehensive setup process:
 
 **Python Environment Setup:**
 - Use system Python 3.11.2 (no upgrade needed)
 - Create virtual environment for CarBuddy application
 - Install all Python dependencies from requirements.txt
 
+**Bluetooth Pre-Pairing Process:**
+CarBuddy devices are factory-provisioned with their specific Veepeak adapter MAC address:
+
+```bash
+# Factory provisioning (not user setup)
+ADAPTER_MAC="AA:BB:CC:DD:EE:FF"  # Pre-configured for this specific CarBuddy unit
+
+# 1. Enable Bluetooth services
+sudo systemctl enable bluetooth
+sudo systemctl start bluetooth
+
+# 2. Automated pairing with known adapter MAC
+sudo bluetoothctl << EOF
+agent on
+default-agent
+pair $ADAPTER_MAC
+trust $ADAPTER_MAC
+connect $ADAPTER_MAC
+EOF
+
+# 3. Store adapter MAC for runtime use
+echo "$ADAPTER_MAC" > /opt/sentry-carbuddy/config/adapter_mac.txt
+```
+
+**Important Notes:**
+- **No user interaction required** - adapter MAC is factory-provisioned
+- Each CarBuddy kit ships with a matched, pre-paired adapter
+- Adapter auto-connects immediately on device boot
+- python-OBD library connects to pre-paired adapter automatically
+- Device is truly plug-and-play with no Bluetooth setup needed
+
 **System Configuration:**
 - Configure Bluetooth services and permissions
+- Complete Veepeak OBDCheck BLE+ pairing process above
 - Set up systemd service for auto-start
 - Configure logging directories and permissions
-- Validate Veepeak OBDCheck BLE+ adapter connectivity
+- Test OBD-II adapter connection via python-OBD
 
 **Configuration Management:**
 - Validate user-provided configuration file format
@@ -100,11 +132,29 @@ Create a comprehensive setup script (`setup.sh`) that handles:
 - Enable necessary system services
 - Create non-root user if needed
 
-**Verification:**
-- Test OBD-II adapter connection
-- Verify Sentry communication
+**Factory Verification:**
+- Test OBD-II adapter pairing and connection
 - Validate systemd service operation
-- Generate setup completion report
+- Generate factory provisioning report
+
+### 2.4 User Configuration (Post-Purchase)
+Simple user configuration script handles only Sentry setup:
+
+**Sentry Configuration:**
+- User downloads `carbuddy-config.json` from Sentry UI
+- Replace default configuration with user's Sentry DSN
+- Validate configuration format and DSN connectivity
+- Restart CarBuddy service with new configuration
+
+**System Verification:**
+- Confirm pre-paired adapter connectivity (factory-provisioned)
+- Test Sentry error reporting with user's DSN
+- Generate user setup completion report
+
+**No Bluetooth Setup Required:**
+- Adapter MAC address is factory-provisioned in `/opt/sentry-carbuddy/config/adapter_mac.txt`
+- python-OBD automatically connects to pre-paired adapter
+- User never interacts with Bluetooth settings
 
 ## 3. Application Auto-Start Configuration
 
@@ -184,8 +234,9 @@ pip install obd sentry-sdk pybluez pyserial
 │   ├── config.py        # Configuration management
 │   └── utils.py         # Utility functions
 ├── config/
-│   ├── default.json        # Default configuration template
-│   └── carbuddy-config.json # User configuration from Sentry UI
+│   ├── default.json         # Default configuration template
+│   ├── carbuddy-config.json # User configuration from Sentry UI
+│   └── adapter_mac.txt      # Factory-provisioned adapter MAC address
 ├── logs/                # Application logs
 ├── requirements.txt     # Python dependencies
 ├── setup.sh            # Setup and configuration script
@@ -204,7 +255,7 @@ pip install obd sentry-sdk pybluez pyserial
 
 **src/obd_manager.py:**
 - Manages OBD-II communication using python-OBD library
-- Handles connection/disconnection to Veepeak OBDCheck BLE+ adapter
+- Connects to system-paired Veepeak OBDCheck BLE+ adapter
 - Implements DTC retrieval and parsing functionality
 - Provides DTC clearing capabilities
 - Includes connection health monitoring and error handling
@@ -217,15 +268,16 @@ pip install obd sentry-sdk pybluez pyserial
 - Handles exception capture for application errors
 
 **src/bluetooth_mgr.py:**
-- Manages Bluetooth Low Energy connectivity
-- Handles pairing and connection management with adapter
-- Provides connection status monitoring
-- Implements automatic reconnection logic
-- Manages Bluetooth service dependencies
+- Monitors system-level Bluetooth connection status
+- Provides connection health checks for paired adapter
+- Handles adapter disconnection detection and alerts
+- Manages adapter reconnection via system commands if needed
+- Lightweight wrapper around system Bluetooth services
 
 **src/config.py:**
 - Configuration management system
 - Loads and merges default and user configurations
+- Reads factory-provisioned adapter MAC address
 - Validates configuration format and required fields
 - Provides typed access to configuration properties
 - Handles configuration file updates and backups
@@ -292,15 +344,37 @@ direnv allow
 ## 5. User Experience
 
 ### 5.1 Initial Setup Process
-1. **Download** pre-configured SD card image
-2. **Flash** to SD card using Raspberry Pi Imager
-3. **Insert** SD card into Pi Zero W
-4. **Power on** and wait for setup completion
-5. **Replace** default configuration with downloaded `carbuddy-config.json` from Sentry UI
-6. **Run setup script** to apply configuration and validate connectivity
-7. **Verify** adapter connection and Sentry reporting
+1. **Receive** CarBuddy kit with pre-paired Pi Zero W and Veepeak adapter
+2. **Download** Sentry configuration file (`carbuddy-config.json`) from Sentry UI
+3. **Connect** CarBuddy to computer via USB to access SD card
+4. **Replace** default configuration with downloaded `carbuddy-config.json`
+5. **Install** CarBuddy in vehicle:
+   - Connect to vehicle's 12V power supply
+   - Plug Veepeak adapter into vehicle's OBD-II port
+   - Mount CarBuddy device securely
+6. **Power on** - device automatically connects to pre-paired adapter
+7. **Verify** operation via Sentry dashboard (DTCs will appear if present)
 
-### 5.2 Status Indicators
+### 5.2 Factory Pre-Pairing Benefits
+**No User Bluetooth Setup Required:**
+- ✅ **Pre-paired at factory** - Pi and adapter are matched as a kit
+- ✅ **Plug-and-play operation** - no scanning, selection, or pairing needed
+- ✅ **Immediate connectivity** - adapter connects automatically on boot
+- ✅ **No user input needed** - perfect for headless device operation
+
+**Behind the Scenes:**
+```
+CarBuddy Boot Sequence:
+[✓] System startup
+[✓] Bluetooth service enabled
+[✓] Connecting to pre-paired adapter AA:BB:CC:DD:EE:FF
+[✓] OBD-II adapter connected
+[✓] Sentry CarBuddy ready
+```
+
+Users never see this process - the device simply works when powered on.
+
+### 5.3 Status Indicators
 - **LED indicators** for connection status
 - **Web dashboard** for diagnostics
 - **Mobile app** for notifications (future)
