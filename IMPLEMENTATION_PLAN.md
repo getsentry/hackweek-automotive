@@ -35,47 +35,16 @@ Sentry CarBuddy is a hardware device based on Raspberry Pi Zero W that connects 
 - **Enclosure** (weather-resistant for automotive use)
 
 ### 1.2 Operating System & Python Setup
-- **Raspberry Pi OS Lite** (headless configuration)
-- **Python 3.11.x** (default in current Pi OS Bookworm)
-- **Python 3.12+** (upgraded during setup for latest features and security)
-
-### 1.3 Python Version Upgrade
-Since Raspberry Pi OS Bookworm ships with Python 3.11.x, we'll upgrade to Python 3.12+ for enhanced performance and security features:
-
-**Option A: Using pyenv (Recommended)**
-```bash
-# Install pyenv dependencies
-sudo apt update
-sudo apt install -y make build-essential libssl-dev zlib1g-dev \
-  libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-  libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
-  libffi-dev liblzma-dev
-
-# Install pyenv
-curl https://pyenv.run | bash
-
-# Install Python 3.12
-pyenv install 3.12.7
-pyenv global 3.12.7
-```
-
-**Option B: Build from source**
-```bash
-# Download and compile Python 3.12
-wget https://www.python.org/ftp/python/3.12.7/Python-3.12.7.tgz
-tar -xzf Python-3.12.7.tgz
-cd Python-3.12.7
-./configure --enable-optimizations
-make -j4
-sudo make altinstall
-```
+- **Raspberry Pi OS Lite** (headless configuration, Bookworm release)
+- **Python 3.11.2** (default version shipped with current Pi OS Bookworm)
+- No Python version upgrade required - 3.11.2 is sufficient for our needs
 
 ## 2. Deployment Strategy
 
 ### 2.1 Pre-configured SD Card Image
 Create a custom Raspberry Pi OS image with:
-- Pre-installed CarBuddy application with Python 3.12+
-- All dependencies and libraries
+- Pre-installed CarBuddy application using Python 3.11.2
+- All dependencies and libraries in virtual environment
 - Auto-start configuration
 - Default configuration template
 - Setup script for user configuration
@@ -88,8 +57,8 @@ Create a custom Raspberry Pi OS image with:
 
 **Implementation:**
 1. Use `pi-gen` tool to create custom Raspberry Pi OS image
-2. Include Python 3.12+ installation
-3. Pre-install all required Python packages
+2. Create virtual environment with Python 3.11.2 (system default)
+3. Pre-install all required Python packages in virtual environment
 4. Include setup script for configuration management
 5. Distribute via website download
 
@@ -109,7 +78,7 @@ Users will download a configuration file from the Sentry UI containing:
 Create a comprehensive setup script (`setup.sh`) that handles:
 
 **Python Environment Setup:**
-- Install Python 3.12+ using pyenv or from source
+- Use system Python 3.11.2 (no upgrade needed)
 - Create virtual environment for CarBuddy application
 - Install all Python dependencies from requirements.txt
 
@@ -268,17 +237,25 @@ pip install obd sentry-sdk pybluez pyserial
 - System health checks and diagnostics
 - Common error handling utilities
 
-## 5. Development Workflow
+### 4.4 Local Development Setup
 
-### 5.1 Local Development Setup
+**Development Environment Requirements:**
+- Python 3.11.2 (matching Raspberry Pi OS Bookworm)
+- `.python-version` file specifies exact version for consistency
+- Virtual environment (`.venv`) for dependency isolation
+
+**Setup Steps:**
 ```bash
 # Clone repository
 git clone https://github.com/sentry-automotive/carbuddy.git
 cd carbuddy
 
+# Verify Python version matches .python-version file
+python3 --version  # Should show Python 3.11.2
+
 # Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -289,6 +266,11 @@ python -m pytest tests/
 # Run application (with mock OBD data)
 python main.py --mock
 ```
+
+**Project Files:**
+- `.python-version` - Specifies Python 3.11.2 for pyenv users
+- `.gitignore` - Excludes `.venv/` from version control
+- `requirements.txt` - Python dependencies
 
 ## 5. User Experience
 
