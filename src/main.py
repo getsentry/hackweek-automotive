@@ -73,20 +73,24 @@ class CarBuddy:
 
     def check_dtcs(self):
         """Check for Diagnostic Trouble Codes (DTCs) and log results. Assumes connection is established."""
-        logger.info("Checking for DTCs...")
+        try:
+            logger.info("Checking for DTCs...")
 
-        response = self.connection.query(obd.commands.GET_DTC)
+            assert self.connection is not None
+            response = self.connection.query(obd.commands.GET_DTC)
 
-        if response.is_null():
-            logger.warning(
-                "No response from vehicle (command not supported or connection issue)"
-            )
-        elif not response.value:
-            logger.info("✅ No DTCs found - Vehicle is healthy")
-        else:
-            logger.warning(f"⚠️  Found {len(response.value)} DTC(s):")
-            for dtc_code, dtc_description in response.value:
-                logger.warning(f"   • {dtc_code}: {dtc_description}")
+            if response.is_null():
+                logger.warning(
+                    "No response from vehicle (command not supported or connection issue)"
+                )
+            elif not response.value:
+                logger.info("✅ No DTCs found - Vehicle is healthy")
+            else:
+                logger.warning(f"⚠️  Found {len(response.value)} DTC(s):")
+                for dtc_code, dtc_description in response.value:
+                    logger.warning(f"   • {dtc_code}: {dtc_description}")
+        except Exception as e:
+            logger.error(f"Error during DTC check: {e}", exc_info=True)
 
     def close(self):
         """Close the connection if it exists."""
@@ -106,11 +110,8 @@ def main():
             if not car_buddy.ensure_connected():
                 continue  # Connection failed, ensure_connected already handled the backoff delay
 
-            try:
-                car_buddy.check_dtcs()
-                time.sleep(30)  # Wait before next check
-            except Exception as e:
-                logger.error(f"Error during DTC check: {e}", exc_info=True)
+            car_buddy.check_dtcs()
+            time.sleep(30)  # Wait before next check
 
     except KeyboardInterrupt:
         logger.info("Shutting down Sentry CarBuddy")
