@@ -75,7 +75,7 @@ Users will download a configuration file from the Sentry UI containing:
 4. CarBuddy application reads configuration on startup
 
 ### 2.3 Factory Provisioning Process
-CarBuddy devices are factory-provisioned during manufacturing with a comprehensive setup process:
+CarBuddy devices are factory-provisioned using the official pi-gen image builder:
 
 **Python Environment Setup:**
 - Use system Python 3.11.2 (no upgrade needed)
@@ -156,6 +156,26 @@ Simple user configuration script handles only Sentry setup:
 - python-OBD automatically connects to pre-paired adapter
 - User never interacts with Bluetooth settings
 
+**Image Building Process:**
+```bash
+# Build CarBuddy image using pi-gen
+cd image-build
+./build-carbuddy-image.sh
+
+# Result: carbuddy-lite-YYYY-MM-DD.img ready to flash
+```
+
+**Per-Device Setup:**
+```bash
+# On each Pi, create first-boot flag with adapter MAC
+echo "AA:BB:CC:DD:EE:FF" > /boot/carbuddy-firstboot
+
+# First boot will automatically:
+# 1. Pair with the specified adapter
+# 2. Write MAC to config file
+# 3. Enable CarBuddy service
+```
+
 ## 3. Application Auto-Start Configuration
 
 ### 3.1 Systemd Service (Recommended)
@@ -221,27 +241,36 @@ sudo systemctl enable hciuart
 pip install obd sentry-sdk pybluez pyserial
 ```
 
-### 4.2 Application Structure
+### 4.2 Development Structure
 
+**Development Repository:**
+```
+sentry-automotive/
+├── carbuddy/           # Python application
+│   ├── src/            # Application modules
+│   ├── main.py         # Main application entry point
+│   ├── requirements.txt # Python dependencies
+│   └── config/         # Configuration files
+├── image-build/        # Raspberry Pi image building
+│   ├── stage-carbuddy/ # Custom pi-gen stage
+│   ├── build-carbuddy-image.sh # Build script
+│   ├── first-boot-setup.sh    # First boot configuration
+│   └── README.md       # Build documentation
+├── scripts/            # Utility scripts
+│   ├── test_carbuddy.py      # Basic functionality tests
+│   └── test_obd_connection.py # OBD connection testing
+└── systemd/            # System service files
+    └── sentry-carbuddy.service
+```
+
+**Production Installation (on Pi):**
 ```
 /opt/sentry-carbuddy/
 ├── main.py              # Main application entry point
-├── src/
-│   ├── __init__.py
-│   ├── obd_manager.py   # OBD-II communication handler
-│   ├── sentry_client.py # Sentry integration
-│   ├── bluetooth_mgr.py # Bluetooth connection management
-│   ├── config.py        # Configuration management
-│   └── utils.py         # Utility functions
-├── config/
-│   ├── default.json         # Default configuration template
-│   ├── carbuddy-config.json # User configuration from Sentry UI
-│   └── adapter_mac.txt      # Factory-provisioned adapter MAC address
-├── logs/                # Application logs
-├── requirements.txt     # Python dependencies
-├── setup.sh            # Setup and configuration script
-└── systemd/
-    └── sentry-carbuddy.service
+├── src/                 # Application modules
+├── config/              # Configuration files
+├── venv/                # Python virtual environment
+└── logs/                # Application logs
 ```
 
 ### 4.3 Core Implementation
