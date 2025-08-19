@@ -77,7 +77,7 @@ class CarBuddy:
             logger.info("Checking for DTCs...")
 
             assert self.connection is not None
-            response = self.connection.query(obd.commands.GET_DTC)
+            response = self.connection.query(obd.commands["GET_DTC"])
 
             if response.is_null():
                 logger.warning(
