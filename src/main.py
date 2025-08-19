@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Sentry CarBuddy - OBD-II Vehicle Diagnostics to Sentry Integration
 
