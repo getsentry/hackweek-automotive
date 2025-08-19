@@ -20,3 +20,37 @@ Built on the Raspberry Pi Zero W platform, the CarBuddy connects to your car's O
 3. **Initialize environment** - Manually run the steps from `scripts/0-init.sh` to initialize the environment
 4. **Complete setup** - Run `scripts/1-setup.sh` to complete the setup process
 
+### Testing with Emulator
+
+For development and testing purposes, you can use an OBD-II emulator instead of connecting to an actual vehicle.
+
+1. **Install development requirements** - This will install the emulator in your virtual environment:
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+2. **Start the emulator** - Run the emulator with the car scenario:
+   ```bash
+   elm -s car
+   ```
+
+3. **Note the device path** - When the emulator starts, it will output the device information:
+   ```
+   Emulator scenario switched to 'car'
+   Welcome to the ELM327 OBD-II adapter emulator.
+   ELM327-emulator is running on /dev/ttys044
+   ...
+   ```
+
+For testing with the emulator, it's recommended to set the device and baud rate manually in your `config/config.yaml`. On macOS, this typically looks like:
+
+```yaml
+bluetooth:
+  initial_backoff: 1
+  max_backoff: 30
+  device: "/dev/ttys044"
+  baudrate: 38400
+```
+
+Make sure to use the actual device path shown in the emulator output.
+
