@@ -12,7 +12,6 @@ import obd
 import time
 import logging
 import yaml
-import os
 from pathlib import Path
 
 logging.basicConfig(
@@ -179,7 +178,20 @@ class CarBuddy:
 
         for command in self.live_data_commands:
             response = self.connection.query(command)
-            logger.info(f"{command.name}: {response.value}")
+            self._dump_value(response)
+
+    def _dump_value(self, response):
+        command = response.command
+        value = response.value
+        if command == obd.commands["STATUS"]:
+            logger.info("%s:", command.name)
+            logger.info("  MIL: %s", value.MIL)
+            logger.info("  DTC count: %s", value.DTC_count)
+            logger.info("  Ignition type: %s", value.ignition_type)
+        elif isinstance(value, str):
+            logger.info("%s: %s", command.name, value)
+        else:
+            logger.info("%s: %s %s", command.name, value.magnitude, response.unit)
 
     def close(self):
         """Close the connection if it exists."""
