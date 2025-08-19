@@ -22,6 +22,35 @@ logging.basicConfig(
 logger = logging.getLogger("carbuddy")
 
 
+LIVE_DATA_COMMANDS = [
+    "STATUS",
+    "ENGINE_LOAD",
+    "COOLANT_TEMP",
+    "FUEL_PRESSURE",
+    "INTAKE_PRESSURE",
+    "RPM",
+    "SPEED",
+    "INTAKE_TEMP",
+    "MAF",
+    "THROTTLE_POS",
+    "OBD_COMPLIANCE",
+    "RUN_TIME",
+    "FUEL_LEVEL",
+    "RELATIVE_THROTTLE_POS",
+    "AMBIANT_AIR_TEMP",
+    "ACCELERATOR_POS_D",
+    "ACCELERATOR_POS_E",
+    "ACCELERATOR_POS_F",
+    "TIME_SINCE_DTC_CLEARED",
+    "FUEL_TYPE",
+    "ETHANOL_PERCENT",
+    "RELATIVE_ACCEL_POS",
+    "HYBRID_BATTERY_REMAINING",
+    "OIL_TEMP",
+    "FUEL_RATE",
+]
+
+
 def load_config():
     """Load configuration from config/config.yaml file."""
     config_path = Path(__file__).parent.parent / "config" / "config.yaml"
@@ -47,6 +76,7 @@ class CarBuddy:
 
     def __init__(self, config):
         self.connection = None
+        self.live_data_commands = None
         self.config = config
         self.backoff_delay = config["bluetooth"]["initial_backoff"]
         self.max_backoff = config["bluetooth"]["max_backoff"]
@@ -54,7 +84,10 @@ class CarBuddy:
     def _connect_to_obd(self):
         """Connect to OBD-II adapter with error handling."""
         try:
-            connection = obd.OBD()
+            connection = obd.OBD(
+                portstr=self.config["bluetooth"].get("device", None),
+                baudrate=self.config["bluetooth"].get("baudrate", None),
+            )
             if not connection.is_connected():
                 logger.error("Could not connect to OBD-II adapter")
                 return None
@@ -69,6 +102,7 @@ class CarBuddy:
         Returns True if connected, False if connection failed (caller should wait)."""
         # Early return if already connected
         if self.connection is not None and self.connection.is_connected():
+            self._ensure_commands()
             return True
 
         # Handle connection loss
@@ -95,6 +129,24 @@ class CarBuddy:
         self.backoff_delay = self.config["bluetooth"]["initial_backoff"]
         return True
 
+    def _ensure_commands(self):
+        """Ensure we have a list of commands to query."""
+        if self.live_data_commands is not None:
+            return
+
+        assert self.connection is not None
+
+        supported_commands = []
+        for name in LIVE_DATA_COMMANDS:
+            try:
+                command = obd.commands[name]
+                if self.connection.supports(command):
+                    supported_commands.append(command)
+            except Exception as e:
+                logger.error(f"Error getting command {name}: {e}")
+
+        self.live_data_commands = supported_commands
+
     def check_dtcs(self):
         """Check for Diagnostic Trouble Codes (DTCs) and log results. Assumes connection is established."""
         try:
@@ -116,6 +168,17 @@ class CarBuddy:
         except Exception as e:
             logger.error(f"Error during DTC check: {e}", exc_info=True)
 
+    def dump_live_data(self):
+        """Dump all mode 02 live data from the OBD-II adapter."""
+        if self.live_data_commands is None:
+            return
+
+        assert self.connection is not None
+
+        for command in self.live_data_commands:
+            response = self.connection.query(command)
+            logger.info(f"{command.name}: {response.value}")
+
     def close(self):
         """Close the connection if it exists."""
         if self.connection:
@@ -135,7 +198,9 @@ def main():
             if not car_buddy.ensure_connected():
                 continue  # Connection failed, try again
 
-            car_buddy.check_dtcs()
+            car_buddy.dump_live_data()
+            # car_buddy.check_dtcs()
+
             time.sleep(config["obd"]["check_interval"])
     except KeyboardInterrupt:
         logger.info("Shutting down Sentry CarBuddy")

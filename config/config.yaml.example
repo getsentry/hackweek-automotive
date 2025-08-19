@@ -6,6 +6,8 @@
 bluetooth:
   initial_backoff: 1 # Initial delay before reconnection attempts
   max_backoff: 30 # Maximum backoff delay (exponential backoff caps here)
+  device: ~ # Path to the serial device, defaults to auto detection
+  baudrate: ~ # Baud rate for the serial connection, defaults to auto detection
 
 # OBD-II data collection settings
 obd:
