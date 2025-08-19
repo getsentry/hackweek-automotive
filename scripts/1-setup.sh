@@ -16,7 +16,7 @@ export LANG=en_GB.UTF-8
 # Setup the python application
 cd /opt/carbuddy
 python3 -m venv .venv
-source venv/bin/activate
+source .venv/bin/activate
 pip install -r requirements.txt
 
 
@@ -76,10 +76,10 @@ ExecStart=/usr/bin/rfcomm watch hci0
 WantedBy=multi-user.target
 EOF
 
-# Install OBD connection script and service
-sudo cp scripts/obd-connect.sh /opt/carbuddy/scripts/obd-connect.sh
+# Install OBD connection script and services
 sudo cp systemd/obd-connect.service /etc/systemd/system/obd-connect.service
+sudo cp systemd/carbuddy.service /etc/systemd/system/carbuddy.service
 
 sudo systemctl daemon-reload
-sudo systemctl enable rfcomm.service obd-connect.service
-sudo systemctl start obd-connect.service
+sudo systemctl enable rfcomm.service obd-connect.service carbuddy.service
+sudo systemctl start carbuddy.service
