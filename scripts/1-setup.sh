@@ -24,3 +24,25 @@ pip install -r requirements.txt
 sudo systemctl enable bluetooth
 sudo systemctl start bluetooth
 
+# Read OBD adapter MAC address from file
+OBD_MAC=$(cat /opt/carbuddy/config/obd_mac_address.txt | tr -d '[:space:]')
+
+# Connect OBD adapter via bluetoothctl
+timeout 30 bluetoothctl << EOF
+power on
+agent on
+default-agent
+scan on
+EOF
+
+sleep 5
+
+timeout 15 bluetoothctl << EOF
+pair $OBD_MAC
+trust $OBD_MAC
+exit
+EOF
+
+# Create virtual serial port for python-obd
+sudo rfcomm bind 0 $OBD_MAC
+
