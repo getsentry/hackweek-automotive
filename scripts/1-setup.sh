@@ -41,28 +41,8 @@ else
     sudo sed -i 's|^ExecStartPost=.*|ExecStartPost=/usr/bin/sdptool add SP|g' "$BT_FILE"
 fi
 
-# Reload systemd and restart bluetooth service
-sudo systemctl daemon-reload
-
-
-# Create RFCOMM service
-sudo tee /etc/systemd/system/rfcomm.service > /dev/null << 'EOF'
-[Unit]
-Description=RFCOMM service
-After=bluetooth.service
-Requires=bluetooth.service
-
-[Service]
-ExecStart=/usr/bin/rfcomm watch hci0
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Reload all services
 sudo systemctl daemon-reload
 sudo systemctl restart bluetooth
-sudo systemctl enable rfcomm.service
 
 # Connect OBD adapter via bluetoothctl
 timeout 30 bluetoothctl << EOF
@@ -82,6 +62,24 @@ disconnect $OBD_MAC
 exit
 EOF
 
-# Create virtual serial port for python-obd
-# TODO create a service to run this
-sudo rfcomm connect hci0 $OBD_MAC &
+# Create RFCOMM service
+sudo tee /etc/systemd/system/rfcomm.service > /dev/null << 'EOF'
+[Unit]
+Description=RFCOMM service
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+ExecStart=/usr/bin/rfcomm watch hci0
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Install OBD connection script and service
+sudo cp scripts/obd-connect.sh /opt/carbuddy/scripts/obd-connect.sh
+sudo cp systemd/obd-connect.service /etc/systemd/system/obd-connect.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable rfcomm.service obd-connect.service
+sudo systemctl start obd-connect.service

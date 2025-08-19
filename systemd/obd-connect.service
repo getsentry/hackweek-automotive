@@ -1,0 +1,20 @@
+[Unit]
+Description=OBD RFCOMM Connection Service
+After=bluetooth.service rfcomm.service network.target
+Requires=bluetooth.service rfcomm.service
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/carbuddy/scripts/obd-connect.sh
+Restart=on-failure
+RestartSec=30
+User=root
+StandardOutput=journal
+StandardError=journal
+
+# Kill any existing rfcomm connections before starting
+ExecStartPre=/bin/bash -c 'pkill -f "rfcomm connect" || true'
+
+[Install]
+WantedBy=multi-user.target
