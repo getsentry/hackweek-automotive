@@ -8,7 +8,15 @@ to Sentry.io for monitoring and alerting.
 
 import obd
 import time
-from datetime import datetime
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logger = logging.getLogger("carbuddy")
 
 
 class CarBuddy:
@@ -24,12 +32,12 @@ class CarBuddy:
         try:
             connection = obd.OBD()
             if not connection.is_connected():
-                print("Error: Could not connect to OBD-II adapter")
+                logger.error("Could not connect to OBD-II adapter")
                 return None
-            print(f"Connected to: {connection.port_name()}")
+            logger.info(f"Connected to: {connection.port_name()}")
             return connection
         except Exception as e:
-            print(f"Connection error: {e}")
+            logger.error(f"Connection error: {e}", exc_info=True)
             return None
 
     def ensure_connected(self):
@@ -41,16 +49,20 @@ class CarBuddy:
 
         # Handle connection loss
         if self.connection:
-            print("Connection lost, attempting to reconnect...")
+            logger.warning("Connection lost, attempting to reconnect...")
             self.connection.close()
             self.connection = None
 
-        print(f"Attempting to connect (retry in {self.backoff_delay}s if failed)...")
+        logger.info(
+            f"Attempting to connect (retry in {self.backoff_delay}s if failed)..."
+        )
         self.connection = self._connect_to_obd()
 
         # Connection failed, apply exponential backoff
         if self.connection is None:
-            print(f"Connection failed. Retrying in {self.backoff_delay} seconds...")
+            logger.warning(
+                f"Connection failed. Retrying in {self.backoff_delay} seconds..."
+            )
             time.sleep(self.backoff_delay)
             self.backoff_delay = min(self.backoff_delay * 2, self.max_backoff)
             return False
@@ -60,33 +72,31 @@ class CarBuddy:
         return True
 
     def check_dtcs(self):
-        """Check for Diagnostic Trouble Codes (DTCs) and print results. Assumes connection is established."""
-        print(
-            f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking for DTCs..."
-        )
+        """Check for Diagnostic Trouble Codes (DTCs) and log results. Assumes connection is established."""
+        logger.info("Checking for DTCs...")
 
         response = self.connection.query(obd.commands.GET_DTC)
 
         if response.is_null():
-            print(
+            logger.warning(
                 "No response from vehicle (command not supported or connection issue)"
             )
         elif not response.value:
-            print("✅ No DTCs found - Vehicle is healthy")
+            logger.info("✅ No DTCs found - Vehicle is healthy")
         else:
-            print(f"⚠️  Found {len(response.value)} DTC(s):")
+            logger.warning(f"⚠️  Found {len(response.value)} DTC(s):")
             for dtc_code, dtc_description in response.value:
-                print(f"   • {dtc_code}: {dtc_description}")
+                logger.warning(f"   • {dtc_code}: {dtc_description}")
 
     def close(self):
         """Close the connection if it exists."""
         if self.connection:
             self.connection.close()
-            print("Connection closed.")
+            logger.info("Connection closed.")
 
 
 def main():
-    print("Starting DTC monitoring...")
+    logger.info("Starting Sentry CarBuddy")
 
     car_buddy = CarBuddy()
 
@@ -100,10 +110,10 @@ def main():
                 car_buddy.check_dtcs()
                 time.sleep(30)  # Wait before next check
             except Exception as e:
-                print(f"Error during DTC check: {e}")
+                logger.error(f"Error during DTC check: {e}", exc_info=True)
 
     except KeyboardInterrupt:
-        print("\n\nStopping DTC monitoring...")
+        logger.info("Shutting down Sentry CarBuddy")
     finally:
         car_buddy.close()
 
