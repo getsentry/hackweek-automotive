@@ -1,2 +1,3 @@
 .venv/
 config/obd_mac_address.txt
+config/config.yaml

@@ -1,0 +1,16 @@
+# Sentry CarBuddy Configuration
+# Copy this file to config.yaml and modify as needed
+# All timing values are in seconds
+
+# Bluetooth connection backoff settings
+bluetooth:
+  initial_backoff: 1 # Initial delay before reconnection attempts
+  max_backoff: 30 # Maximum backoff delay (exponential backoff caps here)
+
+# OBD-II data collection settings
+obd:
+  check_interval: 30 # Time to wait between OBD data checks when connected
+
+# Logging configuration
+logging:
+  level: "DEBUG" # Log level: DEBUG, INFO, WARNING, ERROR

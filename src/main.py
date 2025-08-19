@@ -9,6 +9,9 @@ to Sentry.io for monitoring and alerting.
 import obd
 import time
 import logging
+import yaml
+import os
+from pathlib import Path
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -19,13 +22,34 @@ logging.basicConfig(
 logger = logging.getLogger("carbuddy")
 
 
+def load_config():
+    """Load configuration from config/config.yaml file."""
+    config_path = Path(__file__).parent.parent / "config" / "config.yaml"
+
+    try:
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+        logger.info(f"Loaded configuration from {config_path}")
+        return config
+    except FileNotFoundError:
+        logger.error(f"Config file not found at {config_path}")
+        raise
+    except yaml.YAMLError as e:
+        logger.error(f"Error parsing config file: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error loading config: {e}")
+        raise
+
+
 class CarBuddy:
     """OBD-II connection manager and DTC checker."""
 
-    def __init__(self):
+    def __init__(self, config):
         self.connection = None
-        self.backoff_delay = 1  # Start with 1 second
-        self.max_backoff = 30  # Maximum backoff delay
+        self.config = config
+        self.backoff_delay = config["bluetooth"]["initial_backoff"]
+        self.max_backoff = config["bluetooth"]["max_backoff"]
 
     def _connect_to_obd(self):
         """Connect to OBD-II adapter with error handling."""
@@ -68,7 +92,7 @@ class CarBuddy:
             return False
 
         # Connection successful, reset backoff delay
-        self.backoff_delay = 1
+        self.backoff_delay = self.config["bluetooth"]["initial_backoff"]
         return True
 
     def check_dtcs(self):
@@ -102,17 +126,17 @@ class CarBuddy:
 def main():
     logger.info("Starting Sentry CarBuddy")
 
-    car_buddy = CarBuddy()
+    # Load configuration
+    config = load_config()
+    car_buddy = CarBuddy(config)
 
     try:
         while True:
-            # Try to establish/maintain connection
             if not car_buddy.ensure_connected():
-                continue  # Connection failed, ensure_connected already handled the backoff delay
+                continue  # Connection failed, try again
 
             car_buddy.check_dtcs()
-            time.sleep(30)  # Wait before next check
-
+            time.sleep(config["obd"]["check_interval"])
     except KeyboardInterrupt:
         logger.info("Shutting down Sentry CarBuddy")
     finally:
