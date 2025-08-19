@@ -32,7 +32,7 @@ timeout 30 bluetoothctl << EOF
 power on
 agent on
 default-agent
-scan on
+scan le
 EOF
 
 sleep 5
@@ -44,5 +44,5 @@ exit
 EOF
 
 # Create virtual serial port for python-obd
-sudo rfcomm bind 0 $OBD_MAC
-
+# TODO create a service to run this
+sudo rfcomm connect hci0 $OBD_MAC &
