@@ -6,13 +6,14 @@ Wants=network.target
 
 [Service]
 Type=simple
+ExecStartPre=/bin/mkdir -p /var/log/carbuddy
 ExecStart=/opt/carbuddy/.venv/bin/python /opt/carbuddy/src/main.py
 WorkingDirectory=/opt/carbuddy
 Restart=on-failure
 RestartSec=15
 User=root
-StandardOutput=journal
-StandardError=journal
+StandardOutput=file:/var/log/carbuddy/carbuddy.log
+StandardError=file:/var/log/carbuddy/carbuddy-error.log
 Environment=PYTHONPATH=/opt/carbuddy/src
 
 [Install]
