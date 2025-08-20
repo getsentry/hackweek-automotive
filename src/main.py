@@ -154,6 +154,16 @@ class CarBuddy:
 
         self.live_data_commands = supported_commands
 
+        sentry_attributes = {}
+        for command in self.connection.supported_commands:
+            sentry_attributes[f"obd.commands.{command.name.lower()}"] = True
+        for desired_command in LIVE_DATA_COMMANDS:
+            key = f"obd.commands.{desired_command.lower()}"
+            if key not in sentry_attributes:
+                sentry_attributes[key] = False
+
+        sentry_logger.info("OBD command support detected", attributes=sentry_attributes)
+
     def _ensure_vin(self):
         """Read and store the Vehicle Identification Number (VIN).
 
@@ -211,7 +221,20 @@ class CarBuddy:
         except Exception as e:
             logger.error("Error during DTC check: %s", e, exc_info=True)
 
-    def dump_live_data(self):
+    def log_connection_status(self):
+        assert self.connection is not None
+        status = self.connection.status()
+
+        sentry_logger.info(
+            "OBD connection status",
+            attributes={
+                "obd.connection.status": status,
+                "obd.connection.elm": status != obd.OBDStatus.NOT_CONNECTED,
+                "obd.connection.car": status == obd.OBDStatus.CAR_CONNECTED,
+            },
+        )
+
+    def log_live_data(self):
         """Dump all mode 02 live data from the OBD-II adapter."""
         if self.live_data_commands is None:
             return
@@ -227,7 +250,7 @@ class CarBuddy:
             self._extract_sentry_attributes(response, sentry_attributes)
             self._dump_value(response)
 
-        sentry_logger.info('Vehicle telemetry collected', attributes=sentry_attributes)
+        sentry_logger.info("Vehicle telemetry collected", attributes=sentry_attributes)
 
     def _extract_sentry_attributes(self, response, attributes):
         """Add OBD response to sentry attributes dictionary."""
@@ -243,7 +266,7 @@ class CarBuddy:
         else:
             attr_name = f"vehicle.{command.name.lower()}"
             attributes[attr_name] = (
-                float(value.magnitude) if hasattr(value, 'magnitude') else value
+                float(value.magnitude) if hasattr(value, "magnitude") else value
             )
             if response.unit:
                 attributes[f"{attr_name}.unit"] = str(response.unit)
@@ -276,9 +299,7 @@ def main():
     sentry_sdk.init(
         dsn=config["sentry"]["dsn"],
         enable_logs=True,
-        integrations=[
-            LoggingIntegration(sentry_logs_level=logging.ERROR)
-        ]
+        integrations=[LoggingIntegration(sentry_logs_level=logging.ERROR)],
     )
 
     car_buddy = CarBuddy(config)
@@ -288,7 +309,8 @@ def main():
             if not car_buddy.ensure_connected():
                 continue  # Connection failed, try again
 
-            car_buddy.dump_live_data()
+            car_buddy.log_connection_status()
+            car_buddy.log_live_data()
             # car_buddy.check_dtcs()
 
             time.sleep(config["obd"]["check_interval"])
