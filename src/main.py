@@ -169,7 +169,6 @@ class CarBuddy:
             )
             return
 
-        # response.value can be anything, but we expect a bytearray for VIN
         if isinstance(response.value, (bytes, bytearray)):
             self.vin = bytes(response.value).decode("ascii", errors="ignore")
             logger.info("Vehicle VIN: %s", self.vin)
@@ -235,7 +234,6 @@ class CarBuddy:
 def main():
     logger.info("Starting Sentry CarBuddy")
 
-    # Load configuration
     config = load_config()
     car_buddy = CarBuddy(config)
 
