@@ -8,11 +8,12 @@ from vehicles via a factory-paired Bluetooth OBD-II adapter and reports them
 to Sentry.io for monitoring and alerting.
 """
 
-import obd
-import time
 import logging
-import yaml
+import time
 from pathlib import Path
+
+import obd
+import yaml
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -57,7 +58,7 @@ def load_config():
     config_path = Path(__file__).parent.parent / "config" / "config.yaml"
 
     try:
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config = yaml.safe_load(f)
         logger.info("Loaded configuration from %s", config_path)
         return config
@@ -151,7 +152,10 @@ class CarBuddy:
         self.live_data_commands = supported_commands
 
     def _ensure_vin(self):
-        """Read and store the Vehicle Identification Number (VIN) if not already read."""
+        """Read and store the Vehicle Identification Number (VIN).
+
+        Only reads if not already read.
+        """
         if self.vin is not None:
             return
 
@@ -169,7 +173,7 @@ class CarBuddy:
             )
             return
 
-        if isinstance(response.value, (bytes, bytearray)):
+        if isinstance(response.value, bytes | bytearray):
             self.vin = bytes(response.value).decode("ascii", errors="ignore")
             logger.info("Vehicle VIN: %s", self.vin)
         else:
@@ -180,7 +184,10 @@ class CarBuddy:
             )
 
     def check_dtcs(self):
-        """Check for Diagnostic Trouble Codes (DTCs) and log results. Assumes connection is established."""
+        """Check for Diagnostic Trouble Codes (DTCs) and log results.
+
+        Assumes connection is established.
+        """
         try:
             logger.info("Checking for DTCs...")
 
@@ -189,7 +196,8 @@ class CarBuddy:
 
             if response.is_null():
                 logger.warning(
-                    "No response from vehicle (command not supported or connection issue)"
+                    "No response from vehicle "
+                    "(command not supported or connection issue)"
                 )
             elif not response.value:
                 logger.info("✅ No DTCs found - Vehicle is healthy")

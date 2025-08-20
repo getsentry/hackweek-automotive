@@ -3,9 +3,11 @@ target-version = ["py311"]
 
 [tool.ruff]
 target-version = "py311"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "UP"] # pycodestyle, pyflakes, isort, pyupgrade
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 
 [tool.mypy]
