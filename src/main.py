@@ -81,6 +81,7 @@ class CarBuddy:
         self.config = config
         self.backoff_delay = config["bluetooth"]["initial_backoff"]
         self.max_backoff = config["bluetooth"]["max_backoff"]
+        self.vin = None
 
     def _connect_to_obd(self):
         """Connect to OBD-II adapter with error handling."""
@@ -103,7 +104,6 @@ class CarBuddy:
         Returns True if connected, False if connection failed (caller should wait)."""
         # Early return if already connected
         if self.connection is not None and self.connection.is_connected():
-            self._ensure_commands()
             return True
 
         # Handle connection loss
@@ -128,6 +128,8 @@ class CarBuddy:
 
         # Connection successful, reset backoff delay
         self.backoff_delay = self.config["bluetooth"]["initial_backoff"]
+        self._ensure_commands()
+        self._ensure_vin()
         return True
 
     def _ensure_commands(self):
@@ -147,6 +149,34 @@ class CarBuddy:
                 logger.error(f"Error getting command {name}: {e}")
 
         self.live_data_commands = supported_commands
+
+    def _ensure_vin(self):
+        """Read and store the Vehicle Identification Number (VIN) if not already read."""
+        if self.vin is not None:
+            return
+
+        assert self.connection is not None
+
+        try:
+            response = self.connection.query(obd.commands["VIN"])
+        except Exception as e:
+            logger.error(f"Error reading VIN: {e}", exc_info=True)
+            return
+
+        if response.is_null():
+            logger.warning(
+                "VIN not available (command not supported or connection issue)"
+            )
+            return
+
+        # response.value can be anything, but we expect a bytearray for VIN
+        if isinstance(response.value, (bytes, bytearray)):
+            self.vin = bytes(response.value).decode("ascii", errors="ignore")
+            logger.info(f"Vehicle VIN: {self.vin}")
+        else:
+            logger.warning(
+                f"Unexpected VIN response: {type(response.value)}; got: {response.value!r}"
+            )
 
     def check_dtcs(self):
         """Check for Diagnostic Trouble Codes (DTCs) and log results. Assumes connection is established."""
