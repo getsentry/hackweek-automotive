@@ -77,8 +77,8 @@ WantedBy=multi-user.target
 EOF
 
 # Install OBD connection script and services
-sudo cp systemd/obd-connect.service /etc/systemd/system/obd-connect.service
-sudo cp systemd/carbuddy.service /etc/systemd/system/carbuddy.service
+sudo ln -sf /opt/carbuddy/systemd/obd-connect.service /etc/systemd/system/obd-connect.service
+sudo ln -sf /opt/carbuddy/systemd/carbuddy.service /etc/systemd/system/carbuddy.service
 
 sudo systemctl daemon-reload
 sudo systemctl enable rfcomm.service obd-connect.service carbuddy.service
