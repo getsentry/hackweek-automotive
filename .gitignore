@@ -1,5 +1,11 @@
+# Project and python
 .mypy_cache/
 .ruff_cache/
 .venv/
+
+# Config
 config/obd_mac_address.txt
 config/config.yaml
+
+# Emulator
+elm.log
