@@ -201,6 +201,10 @@ class CarBuddy:
 
         Assumes connection is established.
         """
+
+        if self.config["obd"].get("check_dtcs") is not True:
+            return
+
         try:
             logger.info("Checking for DTCs...")
 
@@ -218,6 +222,15 @@ class CarBuddy:
                 logger.warning("⚠️  Found %s DTC(s):", len(response.value))
                 for dtc_code, dtc_description in response.value:
                     logger.warning("   • %s: %s", dtc_code, dtc_description)
+
+                    with sentry_sdk.push_scope() as scope:
+                        if self.vin:
+                            scope.set_tag("vehicle.vin", self.vin)
+                            scope.set_tag("dtc.code", dtc_code)
+
+                        message = f"{dtc_code}: {dtc_description or 'Unknown Error'}"
+                        sentry_sdk.capture_message(message, level="error")
+
         except Exception as e:
             logger.error("Error during DTC check: %s", e, exc_info=True)
 
@@ -318,7 +331,7 @@ def main():
 
             car_buddy.log_obd_status()
             car_buddy.log_live_data()
-            # car_buddy.check_dtcs()
+            car_buddy.check_dtcs()
 
             time.sleep(config["obd"]["check_interval"])
     except KeyboardInterrupt:

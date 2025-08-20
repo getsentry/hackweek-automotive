@@ -12,6 +12,7 @@ bluetooth:
 # OBD-II data collection settings
 obd:
   check_interval: 30 # Time to wait between OBD data checks when connected
+  check_dtcs: False # Whether DTCs should be checked. Defaults to False.
 
 # Sentry integration settings
 sentry:
