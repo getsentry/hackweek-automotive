@@ -59,16 +59,16 @@ def load_config():
     try:
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
-        logger.info(f"Loaded configuration from {config_path}")
+        logger.info("Loaded configuration from %s", config_path)
         return config
     except FileNotFoundError:
-        logger.error(f"Config file not found at {config_path}")
+        logger.error("Config file not found at %s", config_path)
         raise
     except yaml.YAMLError as e:
-        logger.error(f"Error parsing config file: {e}")
+        logger.error("Error parsing config file: %s", e)
         raise
     except Exception as e:
-        logger.error(f"Unexpected error loading config: {e}")
+        logger.error("Unexpected error loading config: %s", e)
         raise
 
 
@@ -93,10 +93,10 @@ class CarBuddy:
             if not connection.is_connected():
                 logger.error("Could not connect to OBD-II adapter")
                 return None
-            logger.info(f"Connected to: {connection.port_name()}")
+            logger.info("Connected to: %s", connection.port_name())
             return connection
         except Exception as e:
-            logger.error(f"Connection error: {e}", exc_info=True)
+            logger.error("Connection error: %s", e, exc_info=True)
             return None
 
     def ensure_connected(self):
@@ -113,14 +113,14 @@ class CarBuddy:
             self.connection = None
 
         logger.info(
-            f"Attempting to connect (retry in {self.backoff_delay}s if failed)..."
+            "Attempting to connect (retry in %ss if failed)...", self.backoff_delay
         )
         self.connection = self._connect_to_obd()
 
         # Connection failed, apply exponential backoff
         if self.connection is None:
             logger.warning(
-                f"Connection failed. Retrying in {self.backoff_delay} seconds..."
+                "Connection failed. Retrying in %s seconds...", self.backoff_delay
             )
             time.sleep(self.backoff_delay)
             self.backoff_delay = min(self.backoff_delay * 2, self.max_backoff)
@@ -146,7 +146,7 @@ class CarBuddy:
                 if self.connection.supports(command):
                     supported_commands.append(command)
             except Exception as e:
-                logger.error(f"Error getting command {name}: {e}")
+                logger.error("Error getting command %s: %s", name, e)
 
         self.live_data_commands = supported_commands
 
@@ -160,7 +160,7 @@ class CarBuddy:
         try:
             response = self.connection.query(obd.commands["VIN"])
         except Exception as e:
-            logger.error(f"Error reading VIN: {e}", exc_info=True)
+            logger.error("Error reading VIN: %s", e, exc_info=True)
             return
 
         if response.is_null():
@@ -172,10 +172,12 @@ class CarBuddy:
         # response.value can be anything, but we expect a bytearray for VIN
         if isinstance(response.value, (bytes, bytearray)):
             self.vin = bytes(response.value).decode("ascii", errors="ignore")
-            logger.info(f"Vehicle VIN: {self.vin}")
+            logger.info("Vehicle VIN: %s", self.vin)
         else:
             logger.warning(
-                f"Unexpected VIN response: {type(response.value)}; got: {response.value!r}"
+                "Unexpected VIN response: %s; got: %r",
+                type(response.value),
+                response.value,
             )
 
     def check_dtcs(self):
@@ -193,11 +195,11 @@ class CarBuddy:
             elif not response.value:
                 logger.info("✅ No DTCs found - Vehicle is healthy")
             else:
-                logger.warning(f"⚠️  Found {len(response.value)} DTC(s):")
+                logger.warning("⚠️  Found %s DTC(s):", len(response.value))
                 for dtc_code, dtc_description in response.value:
-                    logger.warning(f"   • {dtc_code}: {dtc_description}")
+                    logger.warning("   • %s: %s", dtc_code, dtc_description)
         except Exception as e:
-            logger.error(f"Error during DTC check: {e}", exc_info=True)
+            logger.error("Error during DTC check: %s", e, exc_info=True)
 
     def dump_live_data(self):
         """Dump all mode 02 live data from the OBD-II adapter."""
