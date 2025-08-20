@@ -14,7 +14,8 @@ StandardOutput=journal
 StandardError=journal
 
 # Kill any existing rfcomm connections before starting
-ExecStartPre=/bin/bash -c 'pkill -f "rfcomm connect" || true'
+ExecStartPre=-/usr/bin/pkill -f "rfcomm connect"
+ExecStartPre=/bin/sleep 1
 
 [Install]
 WantedBy=multi-user.target
