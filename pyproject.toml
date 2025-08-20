@@ -1,0 +1,17 @@
+[tool.black]
+target-version = ["py311"]
+
+[tool.ruff]
+target-version = "py311"
+select = ["E", "F", "I", "UP"] # pycodestyle, pyflakes, isort, pyupgrade
+
+[tool.ruff.isort]
+combine-as-imports = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false # Start lenient, can be made stricter later
+ignore_missing_imports = true
+files = ["src/"]

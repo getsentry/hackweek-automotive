@@ -13,6 +13,46 @@ Built on the Raspberry Pi Zero W platform, the CarBuddy connects to your car's O
 
 ## Development
 
+### Environment Setup
+
+Before starting development, ensure you have the proper virtual environment activated:
+
+```bash
+# Option 1: Use direnv (recommended)
+direnv allow
+
+# Option 2: Manually source the environment
+source .envrc
+```
+
+This will create and activate the `.venv` virtual environment with the correct Python version.
+
+### Editor Setup
+
+We recommend using **Visual Studio Code** with the recommended extensions. The project includes VSCode configuration that will:
+
+- Automatically format code on save (Black)
+- Automatically organize imports on save (Ruff)
+- Show linting errors inline (Ruff)
+- Display type checking issues (mypy)
+
+When you open this project in VSCode, it will prompt you to install the recommended extensions if they're not already installed.
+
+### Code Quality
+
+Run linting and formatting tools:
+
+```bash
+# Format code
+black src/
+
+# Lint and auto-fix issues
+ruff check src/ --fix
+
+# Type checking
+mypy src/
+```
+
 ### Raspberry Pi Setup
 
 1. **Provision Raspberry Pi OS Lite (64-bit)** - Flash the OS to SD card and ensure SSH access via password is enabled

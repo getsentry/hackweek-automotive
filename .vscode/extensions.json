@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "charliermarsh.ruff",
+        "ms-python.black-formatter",
+        "ms-python.mypy-type-checker",
+        "ms-python.python"
+    ]
+}

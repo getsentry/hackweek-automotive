@@ -1,0 +1,14 @@
+{
+    "editor.formatOnSave": true,
+    "editor.rulers": [88],
+    "python.defaultInterpreterPath": ".venv/bin/python",
+    "python.linting.enabled": true,
+    "python.linting.ruffEnabled": true,
+    "python.formatting.provider": "black",
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+}

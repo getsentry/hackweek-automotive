@@ -1,1 +1,4 @@
-ELM327-emulator
+ELM327-emulator==3.0.4
+black==25.1.0
+ruff==0.12.9
+mypy==1.17.1
