@@ -221,18 +221,25 @@ class CarBuddy:
         except Exception as e:
             logger.error("Error during DTC check: %s", e, exc_info=True)
 
-    def log_connection_status(self):
+    def log_obd_status(self):
         assert self.connection is not None
         status = self.connection.status()
+        elm_version = self.connection.query(obd.commands["ELM_VERSION"])
+        elm_voltage = self.connection.query(obd.commands["ELM_VOLTAGE"])
 
-        sentry_logger.info(
-            "OBD connection status",
-            attributes={
-                "obd.connection.status": status,
-                "obd.connection.elm": status != obd.OBDStatus.NOT_CONNECTED,
-                "obd.connection.car": status == obd.OBDStatus.CAR_CONNECTED,
-            },
-        )
+        attributes = {
+            "obd.connection.status": status,
+            "obd.connection.elm": status != obd.OBDStatus.NOT_CONNECTED,
+            "obd.connection.car": status == obd.OBDStatus.CAR_CONNECTED,
+            "obd.elm.version": elm_version.value,
+            "obd.elm.voltage": (
+                elm_voltage.value.magnitude if elm_voltage.value else None
+            ),
+        }
+
+        sentry_logger.info("OBD connection status", attributes=attributes)
+        for key, value in attributes.items():
+            logger.info("%s: %s", key, value)
 
     def log_live_data(self):
         """Dump all mode 02 live data from the OBD-II adapter."""
@@ -309,7 +316,7 @@ def main():
             if not car_buddy.ensure_connected():
                 continue  # Connection failed, try again
 
-            car_buddy.log_connection_status()
+            car_buddy.log_obd_status()
             car_buddy.log_live_data()
             # car_buddy.check_dtcs()
 
