@@ -13,6 +13,10 @@ bluetooth:
 obd:
   check_interval: 30 # Time to wait between OBD data checks when connected
 
+# Sentry integration settings
+sentry:
+  dsn: "https://your-sentry-dsn@your-org.ingest.sentry.io/your-project-id"
+
 # Logging configuration
 logging:
   level: "DEBUG" # Log level: DEBUG, INFO, WARNING, ERROR

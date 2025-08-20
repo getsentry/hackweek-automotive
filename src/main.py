@@ -13,7 +13,10 @@ import time
 from pathlib import Path
 
 import obd
+import sentry_sdk
 import yaml
+from sentry_sdk import logger as sentry_logger
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -215,9 +218,35 @@ class CarBuddy:
 
         assert self.connection is not None
 
+        sentry_attributes = {}
+        if self.vin:
+            sentry_attributes["vehicle.vin"] = self.vin
+
         for command in self.live_data_commands:
             response = self.connection.query(command)
+            self._extract_sentry_attributes(response, sentry_attributes)
             self._dump_value(response)
+
+        sentry_logger.info('Vehicle telemetry collected', attributes=sentry_attributes)
+
+    def _extract_sentry_attributes(self, response, attributes):
+        """Add OBD response to sentry attributes dictionary."""
+        command = response.command
+        value = response.value
+
+        if command == obd.commands["STATUS"]:
+            attributes["vehicle.status.mil"] = value.MIL
+            attributes["vehicle.status.dtc_count"] = value.DTC_count
+            attributes["vehicle.status.ignition_type"] = str(value.ignition_type)
+        elif isinstance(value, str):
+            attributes[f"vehicle.{command.name.lower()}"] = value
+        else:
+            attr_name = f"vehicle.{command.name.lower()}"
+            attributes[attr_name] = (
+                float(value.magnitude) if hasattr(value, 'magnitude') else value
+            )
+            if response.unit:
+                attributes[f"{attr_name}.unit"] = str(response.unit)
 
     def _dump_value(self, response):
         command = response.command
@@ -243,6 +272,15 @@ def main():
     logger.info("Starting Sentry CarBuddy")
 
     config = load_config()
+
+    sentry_sdk.init(
+        dsn=config["sentry"]["dsn"],
+        enable_logs=True,
+        integrations=[
+            LoggingIntegration(sentry_logs_level=logging.ERROR)
+        ]
+    )
+
     car_buddy = CarBuddy(config)
 
     try:
